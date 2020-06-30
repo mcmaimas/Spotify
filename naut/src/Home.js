@@ -7,11 +7,14 @@ function Home(props) {
   const [accessToken, setAccessToken] = React.useState("");
   const [refreshToken, setRefreshToken] = React.useState("");
   const [userInfo, setUserInfo] = React.useState({});
-  const queryParams = queryString.parse(props.location.search);
+
   const [artist, setArtist] = React.useState("");
+  const [artistInfo, setArtistInfo] = React.useState("");
   const [artistId, setArtistId] = React.useState("");
   const [headers, setHeaders] = React.useState({});
   const [playListInfo, setPlaylistInfo] = React.useState();
+
+  const queryParams = queryString.parse(props.location.search);
   const baseSpotifyURL = "https://api.spotify.com/v1";
   const client_id = "eea78311208a43669014d1615bf68cf2"; // Your client id
   const client_secret = ""; // Your secret
@@ -46,6 +49,8 @@ function Home(props) {
     axios
       .get(url, { headers })
       .then((res) => {
+        console.log(res);
+        setArtistInfo(res.data.artists.items[0]);
         getRelatedArtists(res.data.artists.items[0].id);
       })
       .catch((err) => {
@@ -54,7 +59,7 @@ function Home(props) {
   };
 
   useEffect(() => {
-    setArtistId("0OdUWJ0sBjDrqHygGUXeCF");
+    setArtistId("");
     const authOptions = {
       url: "https://accounts.spotify.com/api/token",
       form: {
@@ -134,7 +139,19 @@ function Home(props) {
       ></input>
 
       <button onClick={() => getArtistInfo()}>Search</button>
-      <button onClick={() => createPlaylist()}>Create Playlist</button>
+
+      <br />
+      {artistInfo.images && (
+        <div>
+          <h1>{artistInfo.name}</h1>
+          <img
+            src={artistInfo.images[1].url}
+            style={{ borderRadius: "50%" }}
+          ></img>
+          <button onClick={() => createPlaylist()}>Create Playlist</button>
+        </div>
+      )}
+
       <br />
     </div>
   );
