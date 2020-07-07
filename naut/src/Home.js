@@ -3,6 +3,11 @@ import queryString from "query-string";
 import axios from "axios";
 import request from "request";
 
+import Search from "./components/Search";
+import SearchResults from "./components/SearchResults";
+
+require("dotenv").config();
+
 function Home(props) {
   const [accessToken, setAccessToken] = React.useState("");
   const [refreshToken, setRefreshToken] = React.useState("");
@@ -10,14 +15,11 @@ function Home(props) {
 
   const [artist, setArtist] = React.useState("");
   const [artistInfo, setArtistInfo] = React.useState("");
-  const [artistId, setArtistId] = React.useState("");
   const [headers, setHeaders] = React.useState({});
   const [playListInfo, setPlaylistInfo] = React.useState();
 
   const queryParams = queryString.parse(props.location.search);
   const baseSpotifyURL = "https://api.spotify.com/v1";
-  const client_id = "eea78311208a43669014d1615bf68cf2"; // Your client id
-  const client_secret = ""; // Your secret
 
   const getRelatedArtists = (rootArtistId) => {
     const url = `${baseSpotifyURL}/artists/${rootArtistId}/related-artists`;
@@ -38,9 +40,7 @@ function Home(props) {
             setPlaylistInfo(responseArr);
           });
       })
-      .catch((err) => {
-        console.log(err);
-      });
+      .catch(console.error);
   };
 
   const getArtistInfo = () => {
@@ -49,17 +49,13 @@ function Home(props) {
     axios
       .get(url, { headers })
       .then((res) => {
-        console.log(res);
         setArtistInfo(res.data.artists.items[0]);
         getRelatedArtists(res.data.artists.items[0].id);
       })
-      .catch((err) => {
-        console.log(err);
-      });
+      .catch(console.error);
   };
 
   useEffect(() => {
-    setArtistId("");
     const authOptions = {
       url: "https://accounts.spotify.com/api/token",
       form: {
@@ -70,7 +66,11 @@ function Home(props) {
       headers: {
         Authorization:
           "Basic " +
-          new Buffer(client_id + ":" + client_secret).toString("base64"),
+          new Buffer(
+            process.env.REACT_APP_CLIENT_ID +
+              ":" +
+              process.env.REACT_APP_CLIENT_SECRET
+          ).toString("base64"),
       },
       json: true,
     };
@@ -93,13 +93,11 @@ function Home(props) {
       }
     });
   }, []);
-  //   🚀
 
   const createPlaylist = () => {
     const tracks = playListInfo.map((related) => {
       return `spotify:track:${related.data.tracks[0].id}`;
     });
-    console.log(tracks);
     const playlistData = {
       name: `🚀 - ${artist}`,
       description: `${artist}: Related artist`,
@@ -109,7 +107,6 @@ function Home(props) {
     axios
       .post(createUrl, playlistData, { headers })
       .then((res) => {
-        console.log("Playlist created Successfully");
         const playlistId = res.data.id;
         const songsData = { uris: tracks };
         const addSongsURL = `${baseSpotifyURL}/users/${userInfo.id}/playlists/${playlistId}/tracks`;
@@ -118,41 +115,21 @@ function Home(props) {
           .then((songRes) => {
             console.log(songRes);
           })
-          .catch((songErr) => {
-            console.log(songErr);
-          });
+          .catch(console.error);
       })
-      .catch((err) => {
-        console.log("Failed to create playlist");
-      });
+      .catch(console.error);
   };
 
   return (
     <div className="Home">
-      <input
-        id="artistSearch"
-        name="artistSearch"
-        type="text"
-        placeholder="Search for Artist"
-        value={artist}
-        onChange={(event) => setArtist(event.target.value)}
-      ></input>
+      <Search searchHandler={setArtist} onSearchClick={getArtistInfo} />
 
-      <button onClick={() => getArtistInfo()}>Search</button>
-
-      <br />
       {artistInfo.images && (
-        <div>
-          <h1>{artistInfo.name}</h1>
-          <img
-            src={artistInfo.images[1].url}
-            style={{ borderRadius: "50%" }}
-          ></img>
-          <button onClick={() => createPlaylist()}>Create Playlist</button>
-        </div>
+        <SearchResults
+          artistInfo={artistInfo}
+          createPlaylist={createPlaylist}
+        />
       )}
-
-      <br />
     </div>
   );
 }
